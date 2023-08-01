@@ -1,7 +1,6 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
-import 'package:tic_tac_toe/constants.dart';
+
+import './constants.dart';
 
 void main() {
   runApp(
@@ -28,15 +27,28 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late String symbol;
-  var symbolList = List.generate(9, (_) => '');
-  var symbolMatrix = <List<String>>[];
+  late List<String> symbolList;
+  late List<List<String>> symbolMatrix;
   late int currentIdx;
+  late bool isGameOver;
+  late MediaQueryData media;
+  late double deviceWidth;
+  late double deviceHeight;
 
   @override
   void initState() {
     super.initState();
+    _initialize();
+  }
+
+  void _initialize() {
+    isGameOver = false;
+
+    symbolList = List.generate(9, (_) => '');
     symbol = Constants.symbolX;
     currentIdx = -1;
+
+    symbolMatrix = [];
     for (var i = 0; i < Constants.size; ++i) {
       symbolMatrix.add(
         List.generate(Constants.size, (_) => ''),
@@ -44,7 +56,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  String getSymbol() {
+  String _getSymbol() {
     String currSymbol = symbol;
 
     setState(() {
@@ -59,43 +71,66 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: const Text('Tic-Tac-Toe'),
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        ),
-        body: Center(
-          child: GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 3,
-            padding: const EdgeInsets.all(16),
-            children: List.generate(
-              9,
-              (index) => Container(
-                decoration: BoxDecoration(
-                  border: Border.all(),
-                ),
-                child: InkWell(
-                  onTap: symbolList[index].trim().isEmpty
-                      ? () {
-                          setState(() {
-                            currentIdx = index;
-                          });
+  Widget build(BuildContext context) {
+    media = MediaQuery.of(context);
+    deviceWidth = media.size.width;
+    deviceHeight = media.size.height;
 
-                          symbolList[index] = getSymbol();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Tic-Tac-Toe'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            tooltip: 'Restart Game',
+            onPressed: () {
+              setState(() {
+                _initialize();
+              });
+            },
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Center(
+          child: SizedBox(
+            width: deviceWidth < deviceHeight
+                ? deviceWidth * 0.6
+                : deviceHeight * 0.6,
+            child: GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: Constants.size,
+              children: List.generate(
+                Constants.size * Constants.size,
+                (index) => Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(),
+                  ),
+                  child: InkWell(
+                    onTap: !isGameOver && symbolList[index].trim().isEmpty
+                        ? () {
+                            setState(() {
+                              currentIdx = index;
+                            });
 
-                          if (_isGameOver()) {
-                            _showSnackBar(context, symbolList[currentIdx]);
-                            return;
+                            symbolList[index] = _getSymbol();
+
+                            if (_isGameOver()) {
+                              _showSnackBar(context, symbolList[currentIdx]);
+                              return;
+                            }
                           }
-                        }
-                      : null,
-                  child: Center(
-                    child: Text(
-                      symbolList[index],
-                      style: const TextStyle(
-                        fontSize: 28,
+                        : null,
+                    child: Center(
+                      child: Text(
+                        symbolList[index],
+                        style: TextStyle(
+                          fontSize: deviceWidth < deviceHeight
+                              ? deviceWidth * 0.1
+                              : deviceHeight * 0.1,
+                        ),
                       ),
                     ),
                   ),
@@ -104,19 +139,20 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 
   void _showSnackBar(BuildContext context, String winner) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('The Winner is $winner!'),
         duration: const Duration(
-            seconds: 3), // Duration for which the snackbar will be visible
+          seconds: 3,
+        ),
         action: SnackBarAction(
           label: 'CLOSE',
           onPressed: () {
-            // Code to be executed when the user clicks on the Snackbar action button.
-            // Typically used to undo an action or dismiss the Snackbar.
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
           },
         ),
@@ -128,28 +164,15 @@ class _HomePageState extends State<HomePage> {
     int row = currentIdx ~/ Constants.size;
     int col = currentIdx % Constants.size;
 
-    log('row = $row');
-    log('col = $col');
-
     symbolMatrix[row][col] = symbolList[currentIdx];
 
-    log('symbolMatrix = $symbolMatrix');
-    log('currentSymbol = ${symbolList[currentIdx]}');
-
-    if (_rowWin(row, col, symbolList[currentIdx])) {
-      log('_rowWin');
-      return true;
-    }
-    if (_colWin(row, col, symbolList[currentIdx])) {
-      log('_colWin');
-      return true;
-    }
-    if (_primaryDiagonalWin(row, col, symbolList[currentIdx])) {
-      log('_primaryDiagonalWin');
-      return true;
-    }
-    if (_secondaryDiagonalWin(row, col, symbolList[currentIdx])) {
-      log('_secondaryDiagonalWin');
+    if (_rowWin(row, col, symbolList[currentIdx]) ||
+        _colWin(row, col, symbolList[currentIdx]) ||
+        _primaryDiagonalWin(row, col, symbolList[currentIdx]) ||
+        _secondaryDiagonalWin(row, col, symbolList[currentIdx])) {
+      setState(() {
+        isGameOver = true;
+      });
       return true;
     }
 
@@ -157,78 +180,99 @@ class _HomePageState extends State<HomePage> {
   }
 
   bool _rowWin(int row, int col, String symbol) {
-    int currRow = row;
+    int count = 1;
+    int currRow = row - 1;
+
     while (currRow >= 0) {
-      if (symbolMatrix[currRow][col] != symbol) return false;
+      if (symbolMatrix[currRow][col] == '' ||
+          symbolMatrix[currRow][col] != symbol) return false;
       currRow--;
+      count++;
     }
 
-    currRow = row;
+    currRow = row + 1;
     while (currRow < Constants.size) {
-      if (symbolMatrix[currRow][col] != symbol) return false;
+      if (symbolMatrix[currRow][col] == '' ||
+          symbolMatrix[currRow][col] != symbol) return false;
       currRow++;
+      count++;
     }
 
-    return true;
+    return count == Constants.size;
   }
 
   bool _colWin(int row, int col, String symbol) {
-    int currCol = col;
+    int count = 1;
+    int currCol = col - 1;
 
     while (currCol >= 0) {
-      if (symbolMatrix[row][currCol] != symbol) {
+      if (symbolMatrix[row][currCol] == '' ||
+          symbolMatrix[row][currCol] != symbol) {
         return false;
       }
       currCol--;
+      count++;
     }
 
-    currCol = col;
+    currCol = col + 1;
     while (currCol < Constants.size) {
-      if (symbolMatrix[row][currCol] != symbol) return false;
+      if (symbolMatrix[row][currCol] == '' ||
+          symbolMatrix[row][currCol] != symbol) return false;
       currCol++;
+      count++;
     }
 
-    return true;
+    return count == Constants.size;
   }
 
   bool _primaryDiagonalWin(int row, int col, String symbol) {
-    int currRow = row;
-    int currCol = col;
+    int count = 1;
+    int currRow = row + 1;
+    int currCol = col + 1;
     while (currRow < Constants.size && currCol < Constants.size) {
-      if (symbolMatrix[currRow][currCol] != symbol) return false;
+      if (symbolMatrix[currRow][currCol] == '' ||
+          symbolMatrix[currRow][currCol] != symbol) return false;
       currRow++;
       currCol++;
+      count++;
     }
 
-    currRow = row;
-    currCol = col;
+    currRow = row - 1;
+    currCol = col - 1;
     while (currRow >= 0 && currCol >= 0) {
-      if (symbolMatrix[currRow][currCol] != symbol) return false;
+      if (symbolMatrix[currRow][currCol] == '' ||
+          symbolMatrix[currRow][currCol] != symbol) return false;
       currRow--;
       currCol--;
+      count++;
     }
 
-    return true;
+    return count == Constants.size;
   }
 
   bool _secondaryDiagonalWin(int row, int col, String symbol) {
-    int currRow = row;
-    int currCol = col;
+    int count = 1;
+    int currRow = row + 1;
+    int currCol = col - 1;
 
     while (currRow < Constants.size && currCol >= 0) {
-      if (symbolMatrix[currRow][currCol] != symbol) return false;
+      if (symbolMatrix[currRow][currCol] == '' ||
+          symbolMatrix[currRow][currCol] != symbol) return false;
       currRow++;
       currCol--;
+      count++;
     }
 
-    currRow = row;
-    currCol = col;
-    while (currRow <= 0 && currCol > Constants.size) {
-      if (symbolMatrix[currRow][currCol] != symbol) return false;
+    currRow = row - 1;
+    currCol = col + 1;
+    while (currRow >= 0 && currCol < Constants.size) {
+      if (symbolMatrix[currRow][currCol] == '' ||
+          symbolMatrix[currRow][currCol] != symbol) return false;
       currRow--;
       currCol++;
+      count++;
     }
 
-    return true;
+    return count == Constants.size;
   }
 }
