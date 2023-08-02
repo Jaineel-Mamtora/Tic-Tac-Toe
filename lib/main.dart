@@ -12,7 +12,7 @@ void main() {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
+          seedColor: const Color(0XFF331449),
         ),
         useMaterial3: true,
       ),
@@ -40,6 +40,7 @@ class _HomePageState extends State<HomePage> {
   late Map<String, Widget> iconMap;
   late ThemeData theme;
   late ConfettiController _controllerCenter;
+  bool isDarkTheme = false;
 
   @override
   void initState() {
@@ -117,14 +118,18 @@ class _HomePageState extends State<HomePage> {
         size: deviceWidth < deviceHeight
             ? deviceWidth * 0.15
             : deviceHeight * 0.15,
-        color: theme.colorScheme.primary,
+        color: isDarkTheme
+            ? theme.colorScheme.inversePrimary
+            : theme.colorScheme.primary,
       ),
       Constants.symbolO: Icon(
         Icons.radio_button_off_rounded,
         size: deviceWidth < deviceHeight
             ? deviceWidth * 0.13
             : deviceHeight * 0.13,
-        color: theme.colorScheme.secondary,
+        color: isDarkTheme
+            ? theme.colorScheme.surface
+            : theme.colorScheme.secondary,
       ),
     };
   }
@@ -139,9 +144,21 @@ class _HomePageState extends State<HomePage> {
     _initializeSymbols();
 
     return Scaffold(
+      backgroundColor: isDarkTheme
+          ? theme.colorScheme.onBackground
+          : theme.colorScheme.background,
       appBar: AppBar(
-        title: const Text('Tic-Tac-Toe'),
-        backgroundColor: theme.colorScheme.inversePrimary,
+        backgroundColor: isDarkTheme
+            ? theme.colorScheme.primary
+            : theme.colorScheme.inversePrimary,
+        title: Text(
+          'Tic-Tac-Toe',
+          style: TextStyle(
+            color: isDarkTheme
+                ? theme.colorScheme.inversePrimary
+                : theme.colorScheme.onBackground,
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: 'Restart Game',
@@ -150,7 +167,12 @@ class _HomePageState extends State<HomePage> {
                 _initialize();
               });
             },
-            icon: const Icon(Icons.refresh),
+            icon: Icon(
+              Icons.refresh,
+              color: isDarkTheme
+                  ? theme.colorScheme.inversePrimary
+                  : theme.colorScheme.onBackground,
+            ),
           ),
         ],
       ),
@@ -174,7 +196,11 @@ class _HomePageState extends State<HomePage> {
                           Constants.size * Constants.size,
                           (index) => Container(
                             decoration: BoxDecoration(
-                              border: Border.all(),
+                              border: Border.all(
+                                color: isDarkTheme
+                                    ? theme.colorScheme.inversePrimary
+                                    : theme.colorScheme.onBackground,
+                              ),
                             ),
                             child: InkWell(
                               onTap: !isGameOver &&
@@ -218,6 +244,9 @@ class _HomePageState extends State<HomePage> {
                             fontSize: deviceWidth < deviceHeight
                                 ? deviceWidth * 0.08
                                 : deviceHeight * 0.08,
+                            color: isDarkTheme
+                                ? theme.colorScheme.onSecondary
+                                : theme.colorScheme.onBackground,
                           ),
                         ),
                       ),
@@ -245,6 +274,23 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'Switch Theme',
+        backgroundColor: isDarkTheme
+            ? theme.colorScheme.primary
+            : theme.colorScheme.inversePrimary,
+        onPressed: () {
+          setState(() {
+            isDarkTheme = !isDarkTheme;
+          });
+        },
+        child: Icon(
+          Icons.lightbulb_outline,
+          color: isDarkTheme
+              ? theme.colorScheme.inversePrimary
+              : theme.colorScheme.onBackground,
         ),
       ),
     );
