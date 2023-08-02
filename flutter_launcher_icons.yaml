@@ -1,0 +1,13 @@
+dev_dependencies:
+  flutter_launcher_icons: '^0.13.1'
+
+flutter_launcher_icons:
+  android: 'launcher_icon'
+  ios: true
+  image_path: 'assets/tic_tac_toe.png'
+  min_sdk_android: 20
+  web:
+    generate: true
+    image_path: 'assets/tic_tac_toe.png'
+    background_color: '#hexcode'
+    theme_color: '#hexcode'
